@@ -7,28 +7,34 @@ console.log(file)
 
 var test = require('tape')
 
+//handle old node and new node
+function A(buf) {
+  return [].slice.call(buf)
+}
+
 test('lines', function (t) {
 
   pull(
     pull.values(file),
-    decode(),
-  //  pull.map(JSON.stringify),
+    decode('utf8'),
     pull.collect(function (err, ary) {
+      if(err) throw err
       console.log(ary.join(''))
       t.equal(file.map(String).join(''), ary.join(''))
       t.end()
     })
   )
+
 })
 
 test('utf-8', function (t) {
   var expected = 'cents:¢\neuros:€'
 
   var coinage = [
-    new Buffer('cents:').toJSON(),
+    A(new Buffer('cents:')),
     [0xC2, 0xA2],
-    new Buffer('\n').toJSON(),
-    new Buffer('euros:').toJSON(),
+    A(new Buffer('\n')),
+    A(new Buffer('euros:')),
     [0xE2, 0x82, 0xAC]
   ].reduce(function (a, b) {
     return a.concat(b)
@@ -44,25 +50,30 @@ test('utf-8', function (t) {
     return a.map(function (e) { return new Buffer(e) })
   }
 
-  console.log(rSplit())
-  pull(
-    pull.count(100),
-    pull.asyncMap(function (e, cb) {
+  t.plan(100)
+  var N = 100
 
-      pull(
-        pull.values(rSplit()),
-        decode(),
-        pull.collect(function (err, ary) {
-          t.equal(ary.join(''), expected)
-          cb()
-        })
-      )
+  while(N--)
+    pull(
+      pull.values(rSplit()),
+      decode(),
+      pull.collect(function (err, ary) {
+        t.equal(ary.join(''), expected)
+      })
+    )
 
-    }),
-    pull.drain(null, function () {
-      t.end()
-    })
-  )
+  t.end()
+
 })
+
+
+
+
+
+
+
+
+
+
 
 
